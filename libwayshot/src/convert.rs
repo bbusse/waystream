@@ -40,7 +40,7 @@ impl Convert for ConvertNone {
 impl Convert for ConvertRGB8 {
     fn convert_inplace(&self, data: &mut [u8]) -> ColorType {
         for chunk in data.chunks_exact_mut(4) {
-            chunk.swap(0, 2);
+            //chunk.swap(0, 2);
         }
         ColorType::Rgba8
     }

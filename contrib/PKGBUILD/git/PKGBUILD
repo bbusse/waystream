@@ -1,16 +1,16 @@
-# Maintainer: Aakash Sharma <aakashsensharma@gmail.com>
-pkgname='wayshot-git'
-_pkgname="wayshot"
+# Maintainer: Aakash Sharma <bj.rn@baerlin.eu>
+pkgname='waystream-git'
+_pkgname="waystream"
 pkgver=1.1.9.98.g538caac
 pkgrel=1
 arch=('x86_64')
-url="https://git.sr.ht/~shinyzenith/wayshot"
-pkgdesc="A screenshot tool for wlroots compositors."
+url="https://github.com/bbusse/waystream"
+pkgdesc="A streaming tool for wlroots based compositors"
 license=('BSD')
 optdepends=('slurp: for area selection')
 makedepends=('rustup' 'git' 'scdoc')
-conflicts=('wayshot-bin' 'wayshot-musl-git')
-source=("$_pkgname::git+https://git.sr.ht/~shinyzenith/$_pkgname")
+conflicts=('waystream-bin' 'waystream-musl-git')
+source=("$_pkgname::git+https://github.com/bbusse/$_pkgname")
 sha256sums=('SKIP')
 
 build(){
@@ -20,9 +20,9 @@ build(){
 
 package() {
 	cd "$_pkgname"
-	install -Dm 755 ./target/release/wayshot "$pkgdir/usr/bin/wayshot"
-	install -Dm 644 ./docs/wayshot.1.gz "$pkgdir/usr/share/man/man1/wayshot.1.gz"
-	install -Dm 644 ./docs/wayshot.7.gz "$pkgdir/usr/share/man/man7/wayshot.7.gz"
+	install -Dm 755 ./target/release/waystream "$pkgdir/usr/bin/waystream"
+	install -Dm 644 ./docs/waystream.1.gz "$pkgdir/usr/share/man/man1/waystream.1.gz"
+	install -Dm 644 ./docs/waystream.7.gz "$pkgdir/usr/share/man/man7/waystream.7.gz"
 }
 
 pkgver() {

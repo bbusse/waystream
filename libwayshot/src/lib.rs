@@ -287,6 +287,8 @@ pub fn capture_output_frame(
 
     // Copy the pixel data advertised by the compositor into the buffer we just created.
     frame.copy(&buffer);
+    buffer.destroy();
+    shm_pool.destroy();
 
     // On copy the Ready / Failed events are fired by the frame object, so here we check for them.
     loop {

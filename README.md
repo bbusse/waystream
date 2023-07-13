@@ -1,74 +1,82 @@
-<p align=center>
-  <img src="https://git.sr.ht/~shinyzenith/wayshot/blob/main/docs/assets/wayshot.png" alt=wayshot width=60%>
-  <p align=center>A native, blazing-fast 🚀🚀🚀 screenshot tool for wlroots based compositors such as sway and river written in Rust.</p>
+# waystream - Wayland Desktop Streaming
+waystream streams your Wayland desktop session over the network  
+  
+It was originally forked from [wayshot](https://github.com/waycrate/wayshot) - a screenshot tool for Wayland
+and has since been turned into a Wayland desktop streaming application
 
-  <p align="center">
-  <a href="./LICENSE.md"><img src="https://img.shields.io/github/license/waycrate/wayshot?style=flat-square&logo=appveyor"></a>
-  <img src="https://img.shields.io/badge/cargo-v1.2.2-green?style=flat-square&logo=appveyor">
-  <img src="https://img.shields.io/github/issues/waycrate/wayshot?style=flat-square&logo=appveyor">
-  <img src="https://img.shields.io/github/forks/waycrate/wayshot?style=flat-square&logo=appveyor">
-  <img src="https://img.shields.io/github/stars/waycrate/wayshot?style=flat-square&logo=appveyor">
-  <br>
-  <img src="https://repology.org/badge/vertical-allrepos/wayshot.svg">
-  </p>
-</p>
 
-# Some usage examples:
+> **Note**
+> Note that it is currently limited to compositors implementing zwlr_screencopy_v1
 
-NOTE: Read `man 7 wayshot` for more examples.
+## Usage
+Stream raw video to some host over UDP, show framerate data as overlay
+```
+$ waystream --udphost 127.0.0.1 --udpport 2342 --showfps
+```
+Stream raw video to some host over UDP, show framerate data as overlay,  
+scale video to width and height
+```
+$ waystream --udphost 127.0.0.1 --udpport 2342 --showfps --width 320 --height 240
+```
+Show usage
+```
+$ waystream --help
 
-NOTE: Read `man wayshot` for flag information.
+waystream 0.1.0
+Streaming tool for Wayland compositors implementing zwlr_screencopy_v1.
 
-Region Selection:
+USAGE:
+    waystream [OPTIONS] --udphost <UDP_TARGET_HOST> --udpport <UDP_TARGET_PORT>
 
-```bash
-wayshot -s "$(slurp)"
+OPTIONS:
+    -c, --cursor                       Enable cursor in stream
+    -d, --debug                        Enable debug mode
+    -h, --udphost <UDP_TARGET_HOST>    Set the host to stream to
+    -h, --udpport <UDP_TARGET_PORT>    Set the port to stream to
+        --help                         Print help information
+    -l, --listoutputs                  List all valid outputs
+    -o, --output <OUTPUT>              Choose a particular display to stream
+    -r, --showfps                      Show framerate
+    -s, --slurp <GEOMETRY>             Select a portion of display to stream using slurp
+        --stdout                       Output the image data to standard out
+    -V, --version                      Print version information
+    -x, --width <TARGET_WIDTH>         Set the target video width
+    -y, --height <TARGET_HEIGHT>       Set the target video height
+```
+## Build
+### Install build dependencies
+```
+$ sudo apt install cargo \
+                   libgstreamer1.0-dev \
+                   libgstreamer-plugins-base1.0-dev \
+                   libglib2.0-dev \
+                   libunwind-dev
+```
+### Build
+```
+$ cargo build --release
+```
+#### Run build
+```
+$ ./target/release/waystream
 ```
 
-Fullscreen:
-
-```bash
-wayshot
+## Debug
+### Profile
 ```
-
-Screenshot and copy to clipboard:
-
-```bash
-wayshot --stdout | wl-copy
+$ perf record --call-graph dwarf,16384 -e cpu-clock -F 997 ./target/release/waystream --udphost 127.0.0.1 --udpport 2342
+$ perf script | stackcollapse-perf.pl | ./rust-unmangle | flamegraph.pl > flame.svg
 ```
+## Authors
+Björn Busse <bj.rn@baerlin.eu>  
+Wladimir Leuschner <https://github.com/wleuschner>  
+Shinyzenith <aakashsensharma@gmail.com> (wayshot/libwayshot)  
+  
+Special thanks to hrmny!
+## Contributors
 
-Pick a hex color code, using ImageMagick:
-
-```bash
-wayshot -s "$(slurp -p)" --stdout | convert - -format '%[pixel:p{0,0}]' txt:-|egrep "#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})" -o
-```
-
-# Installation
-
-## AUR:
-
-`wayshot-git` & `wayshot-bin` have been packaged.
-
-## Compile time dependencies:
-
--   scdoc (If present, man-pages will be generated.)
--   rustup
--   make
--	meson (Required to build XDPW.)
--	ninja (Required to build XDPW.)
-
-## Compiling:
-
--   `git clone https://github.com/waycrate/wayshot && cd wayshot`
--   `make setup`
--   `make`
--   `sudo make install`
-
-# Support:
-
-1. https://matrix.to/#/#waycrate-tools:matrix.org
-2. https://discord.gg/KKZRDYrRYW
-
-# Smithay Developers:
-
-Massive thanks to smithay developer <a href="https://github.com/cmeissl">Cmeissl</a> and <a href="https://github.com/vberger">Victor Berger</a>. Without them this project won't be possible as my wayland knowledge is limited.
+## References
+[wayshot](https://github.com/waycrate/wayshot)  
+[Wayland Protocol](https://wayland.freedesktop.org/)  
+[Wayland Protocol in Wikipedia](https://en.wikipedia.org/wiki/Wayland_(protocol))  
+[wlroots compositor](https://gitlab.freedesktop.org/wlroots/wlroots)  

@@ -1,0 +1,46 @@
+[package]
+authors = [
+    "Björn Busse <bj.rn@baerlin.eu>",
+    "Wladimir Leuschner <https://github.com/wleuschner>",
+    "Shinyzenith <https://aakash.is-a.dev>"
+]
+description = "Streaming tool for wlroots based compositors implementing the zwlr_screencopy_v1 protocol"
+documentation = "https://docs.rs/crate/waystream/latest"
+edition = "2021"
+homepage = "https://github.com/bbusse/waystream"
+keywords = ["stream", "video", "wayland", "wlroots"]
+license = "BSD-2-Clause"
+name = "waystream"
+repository = "https://github.com/bbusse/waystream"
+version = "0.1.0"
+exclude = [
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+	"contrib/*",
+	"docs/assets/*",
+	"release.sh",
+]
+
+[build-dependencies]
+flate2 = "1.0.24"
+
+[dependencies]
+anyhow = "1.0"
+clap = "3.1.18"
+derive_more = "0.99.5"
+gstreamer = "0.20.2"
+gstreamer-app = "0.20.0"
+gstreamer-video = "0.20.4"
+gstreamer-video-sys = "0.20.0"
+
+env_logger = { version = "0.9.0", default-features = false, features = ["atty", "termcolor"] }
+log = "0.4.17"
+
+wayland-client = "0.30.0"
+wayland-protocols = { version = "0.30.0", features=["client", "unstable"] }
+
+libwayshot = { path = "../libwayshot" }
+
+[[bin]]
+name = "waystream"
+path = "src/waystream.rs"
