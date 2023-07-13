@@ -348,7 +348,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = clap::set_flags().get_matches();
     env::set_var("RUST_LOG", "waystream=info");
 
-    if args.is_present("debug") {
+    if args.get_flag("debug") {
         env::set_var("RUST_LOG", "waystream=trace");
     }
 
@@ -360,16 +360,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         show_fps: false,
     };
 
-    if args.is_present("showfps") {
+    if args.get_flag("show-fps") {
         pipe_opts.show_fps = true;
     }
 
-    if args.is_present("width") {
-        pipe_opts.target_width = args.value_of("width").expect("Int").parse::<i32>().unwrap();
+    if args.contains_id("width") {
+        pipe_opts.target_width = args.get_one::<i32>("width").unwrap().clone();
     }
 
-    if args.is_present("height") {
-        pipe_opts.target_height = args.value_of("height").expect("Int").parse::<i32>().unwrap();
+    if args.contains_id("height") {
+        pipe_opts.target_height = args.get_one::<i32>("height").unwrap().clone();
     }
 
     env_logger::init();
@@ -377,7 +377,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut conn = Connection::connect_to_env().unwrap();
     let (mut globals, _) = registry_queue_init::<WaystreamState>(&conn).unwrap();
 
-    if args.is_present("listoutputs") {
+    if args.contains_id("list-outputs") {
         let valid_outputs = output::get_all_outputs(&mut globals, &mut conn);
         for output in valid_outputs {
             log::info!("{:#?}", output.name);
@@ -385,9 +385,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         exit(1);
     }
 
-    let output: WlOutput = if args.is_present("output") {
+    let output: WlOutput = if args.contains_id("output") {
         output::get_wloutput(
-            args.value_of("output").unwrap().trim().to_string(),
+            args.get_one::<String>("output").unwrap().clone(),
             output::get_all_outputs(&mut globals, &mut conn),
         )
     } else { output::get_all_outputs(&mut globals, &mut conn) .first()
@@ -397,7 +397,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut cursor_overlay: i32 = 0;
-    if args.is_present("cursor") {
+    if args.get_flag("cursor") {
         cursor_overlay = 1;
     }
 
