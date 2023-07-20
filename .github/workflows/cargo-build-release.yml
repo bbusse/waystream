@@ -1,0 +1,88 @@
+name: Cargo Build and Release
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  linux_amd64:
+    name: Linux amd64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install libgstreamer1.0-dev \
+                           libgstreamer-plugins-base1.0-dev \
+                           libglib2.0-dev \
+                           libunwind-dev
+
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Compress binary
+        run: |
+          xz -k target/release/waystream
+          mv target/release/waystream.xz \
+             target/release/waystream-linux-amd64.xz
+
+      - name: Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          automatic_release_tag: "linux-amd64-latest"
+          title: waystream-linux-amd64
+          files: |
+            target/release/waystream-linux-amd64.xz
+
+  linux_arm7:
+    name: Linux armv7
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install libgstreamer1.0-dev \
+                           libgstreamer-plugins-base1.0-dev \
+                           libglib2.0-dev \
+                           libunwind-dev
+
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv7-unknown-linux-gnueabihf --release --all-features
+
+      - name: Compress binary
+        run: |
+          xz -k target/armv7-unknown-linux-gnueabihf/release/waystream
+          mv target/armv7-unknown-linux-gnueabihf/release/waystream.xz \
+             target/armv7-unknown-linux-gnueabihf/release/waystream-linux-armv7.xz
+
+      - name: Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          automatic_release_tag: "linux-armv7-latest"
+          title: waystream-linux-armv7
+          files: |
+            target/armv7-unknown-linux-gnueabihf/release/waystream-linux-armv7.xz

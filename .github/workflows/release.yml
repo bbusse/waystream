@@ -1,0 +1,54 @@
+name: Release artifacts
+
+# Note: This event will only trigger a workflow run
+# if the workflow file is on the default branch
+# - So we need to run this workflow explicitly again
+# after the container are pushed to the registry
+#on:
+#  workflow_run:
+#    workflows: ["Build and release container"]
+#    branches: '**'
+#    types:
+#      - completed
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Wait for Linux builds
+      uses: lewagon/wait-on-check-action@v1.3.1
+      with:
+        ref: ${{ github.ref }}
+        check-name: 'build'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 10
+
+    - name: Download Linux artifacts
+      id: download-linux-artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: container-extract-artifact.yml
+
+    - name: Release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        title: waystream
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        automatic_release_tag: "latest"
+        files: |
+          waystream-linux-amd64-latest.tar.xz
+          waystream-linux-arm64-latest.tar.xz
+          waystream-linux-arm64-musl-latest.tar.xz

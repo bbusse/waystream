@@ -1,0 +1,93 @@
+name: Extract and release build artifact
+
+# Note: This event will only trigger a workflow run
+# if the workflow file is on the default branch
+# - So we need to run this workflow explicitly again
+# after the container are pushed to the registry
+#on:
+#  workflow_run:
+#    workflows: ["Build and release container"]
+#    branches: '**'
+#    types:
+#      - completed
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  extract-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Wait for container release
+      uses: lewagon/wait-on-check-action@v1.3.1
+      with:
+        ref: CI
+        check-name: 'build'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 10
+
+    - name: Extract build artifact from build container - amd64
+      uses: bbusse/actions-docker-extract@latest
+      id: extract_amd64
+      with:
+        image: "ghcr.io/bbusse/waystream-build:latest"
+        path: "/usr/local/src/waystream/target/release/waystream"
+        platform: linux/amd64
+
+    - name: Compress build artifact - amd64
+      run: |
+        mv ${{ steps.extract_amd64.outputs.destination }}/waystream .
+        tar cJf waystream-linux-amd64-latest.tar.xz waystream
+
+    - name: Upload artifact - amd64
+      uses: actions/upload-artifact@v3
+      with:
+        name: waystream-linux-amd64-latest.tar.xz
+        path: waystream-linux-amd64-latest.tar.xz
+
+    - name: Extract build artifact from build container - arm64
+      uses: bbusse/actions-docker-extract@latest
+      id: extract_arm64
+      with:
+        image: "ghcr.io/bbusse/waystream-build:latest"
+        path: "/usr/local/src/waystream/target/release/waystream"
+        platform: linux/arm64
+
+    - name: Compress build artifact - arm64
+      run: |
+        mv ${{ steps.extract_arm64.outputs.destination }}/waystream .
+        tar cJf waystream-linux-arm64-latest.tar.xz waystream
+
+    - name: Upload artifact - arm64
+      uses: actions/upload-artifact@v3
+      with:
+          name: waystream-linux-arm64-latest.tar.xz
+          path: waystream-linux-arm64-latest.tar.xz
+
+    - name: Extract build artifact from build container - arm64 musl
+      uses: bbusse/actions-docker-extract@latest
+      id: extract_arm64_musl
+      with:
+        image: "ghcr.io/bbusse/waystream-build-musl:latest"
+        path: "/usr/local/src/waystream/target/release/waystream"
+        platform: linux/arm64
+
+    - name: Compress build artifact - arm64
+      run: |
+        mv ${{ steps.extract_arm64_musl.outputs.destination }}/waystream .
+        tar cJf waystream-linux-arm64-musl-latest.tar.xz waystream
+
+    - name: Upload artifact - arm64 musl
+      uses: actions/upload-artifact@v3
+      with:
+          name: waystream-linux-arm64-musl-latest.tar.xz
+          path: waystream-linux-arm64-musl-latest.tar.xz
