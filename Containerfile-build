@@ -1,9 +1,10 @@
 ARG ALPINE_VERSION=3.18
+ARG TARGET=""
 FROM rust:alpine${ALPINE_VERSION}
 LABEL maintainer="Björn Busse <bj.rn@baerlin.eu>"
 LABEL org.opencontainers.image.source https://github.com/bbusse/waystream
 
-ARG ALPINE_VERSION
+ARG ALPINE_VERSION TARGET
 
 ENV USER="build-user" \
     APK_ADD="gstreamer-dev musl-dev gst-plugins-rs-dev"
@@ -18,7 +19,7 @@ RUN echo $'http://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repo
 
 RUN mkdir -p /usr/local/src/waystream
 COPY . /usr/local/src/waystream
-RUN cd /usr/local/src/waystream && cargo build --release
+RUN cd /usr/local/src/waystream && cargo build --release $TARGET
 
 # Add application user
 RUN addgroup -S $USER && adduser -S $USER -G $USER
