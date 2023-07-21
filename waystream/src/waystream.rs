@@ -36,6 +36,7 @@ struct PipeOptions {
     target_width: i32,
     target_height: i32,
     show_fps: bool,
+    show_stream: bool,
 }
 
 mod clap;
@@ -191,16 +192,23 @@ fn create_pipeline(mut conn: Connection,
                                              &video_tee_queue_1,
                                              //&video_tee_queue_2,
                                              //&hlssink,
-                                             &netsink,
-                                             &fpssink])?;
+                                             &netsink])?;
+
+    if pipe_opts.show_stream {
+        pipeline.add(&fpssink);
+    }
 
     gstreamer::Element::link_many(&[appsrc.upcast_ref(), &scale, &filter, &video_tee])?;
     gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_0, &netsink])?;
-    gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_1, &fpssink])?;
     //gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_2, &hlssink])?;
 
+    if pipe_opts.show_stream {
+        gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_1, &fpssink])?;
+    }
+
     let mut current_frame = 0;
-                    let mut t: u64 = 0;
+    let mut t: u64 = 0;
+
     appsrc.set_callbacks(
         gstreamer_app::AppSrcCallbacks::builder()
             .need_data(move |appsrc, _| {
@@ -358,10 +366,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         target_width: 0,
         target_height: 0,
         show_fps: false,
+        show_stream: false,
     };
 
     if args.get_flag("show-fps") {
         pipe_opts.show_fps = true;
+    }
+
+    if args.get_flag("show-stream") {
+        pipe_opts.show_stream = true;
     }
 
     if args.contains_id("width") {

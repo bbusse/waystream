@@ -28,6 +28,13 @@ pub fn set_flags() -> Command {
                 .help("Show framerate"),
         )
         .arg(
+            arg!(--"show-stream")
+                .long("show-stream")
+                .required(false)
+                .num_args(0)
+                .help("Show video output"),
+        )
+        .arg(
             arg!(--cursor)
                 .required(false)
                 .num_args(0)
