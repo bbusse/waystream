@@ -1,6 +1,7 @@
 use std::{
     cmp, env,
     error::Error,
+    iter::Map,
     net::{IpAddr,Ipv6Addr},
     process::exit,
     time::{SystemTime},
@@ -38,8 +39,8 @@ struct PipeOptions {
     target_height: i32,
     show_fps: bool,
     show_stream: bool,
-    udp_host: String,
-    udp_port: i32,
+    udp_host: Vec<String>,
+    udp_port: Vec<i32>,
     http_host: String,
     http_port: u16,
 }
@@ -203,18 +204,23 @@ fn create_pipeline(mut conn: Connection,
         //gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_hls, &hlssink])?;
     }
 
-    if let Ok(udp_address) = pipe_opts.udp_host.parse::<IpAddr>() {
-        log::info!("Adding udp video sink");
-        let netsink = gstreamer::ElementFactory::make("udpsink").property("host", udp_address.to_string())
-                                                                .property("port", pipe_opts.udp_port)
-                                                                .build()?;
+    let mut udp_host_count = 0;
 
-        let video_tee_queue_udp = gstreamer::ElementFactory::make("queue").build()?;
+    for host in pipe_opts.udp_host {
+        if let Ok(udp_address) = host.parse::<IpAddr>() {
+            log::info!("Adding udp video sink for {} {}", host, pipe_opts.udp_port[udp_host_count]);
+            let netsink = gstreamer::ElementFactory::make("udpsink").property("host", udp_address.to_string())
+                                                                    .property("port", &pipe_opts.udp_port[udp_host_count])
+                                                                    .build()?;
 
-        pipeline.add(&video_tee_queue_udp).unwrap();
-        pipeline.add(&netsink).unwrap();
+            let video_tee_queue_udp = gstreamer::ElementFactory::make("queue").build()?;
 
-        gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_udp, &netsink])?;
+            pipeline.add(&video_tee_queue_udp).unwrap();
+            pipeline.add(&netsink).unwrap();
+
+            gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_udp, &netsink])?;
+        }
+        udp_host_count += 1;
     }
 
     if pipe_opts.show_stream {
@@ -383,8 +389,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         show_stream: false,
         http_host: "".to_string(),
         http_port: 0,
-        udp_host: "".to_string(),
-        udp_port: 0,
+        udp_host: Vec::new(),
+        udp_port: Vec::new(),
     };
 
     if args.get_flag("show-fps") {
@@ -404,11 +410,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if args.contains_id("udp-host") {
-        pipe_opts.udp_host = args.get_one::<String>("udp-host").unwrap().clone();
+        pipe_opts.udp_host = args.get_many::<String>("udp-host").unwrap().map(|x| String::from(x)).collect();
     }
 
     if args.contains_id("udp-port") {
-        pipe_opts.udp_port = args.get_one::<i32>("udp-port").unwrap().clone();
+        pipe_opts.udp_port = args.get_many::<i32>("udp-port").unwrap().map(|x| <i32>::from(x.clone())).collect();
     }
 
     if args.contains_id("width") {

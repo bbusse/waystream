@@ -1,4 +1,5 @@
 use clap::{arg, Command};
+use std::iter::Map;
 
 pub fn set_flags() -> Command {
     let app = Command::new("waystream")
@@ -53,14 +54,14 @@ pub fn set_flags() -> Command {
                 .help("Set the http listen port"),
         )
         .arg(
-            arg!(--"udp-host" <UDP_HOST>)
+            arg!(--"udp-host" <UDP_HOST> ...)
                 .long("udp-host")
                 .required(false)
                 .num_args(1)
                 .help("Set the host to stream to"),
         )
         .arg(
-            arg!(--"udp-port" <UDP_PORT>)
+            arg!(--"udp-port" <UDP_PORT> ...)
                 .long("udp-port")
                 .required(false)
                 .num_args(1)
