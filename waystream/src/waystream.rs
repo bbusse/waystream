@@ -2,7 +2,7 @@ use std::{
     cmp, env,
     error::Error,
     process::exit,
-    time::{SystemTime, UNIX_EPOCH, Duration},
+    time::{SystemTime},
 };
 
 use libwayshot::CaptureRegion;
@@ -195,7 +195,7 @@ fn create_pipeline(mut conn: Connection,
                                              &netsink])?;
 
     if pipe_opts.show_stream {
-        pipeline.add(&fpssink);
+        pipeline.add(&fpssink).unwrap();
     }
 
     gstreamer::Element::link_many(&[appsrc.upcast_ref(), &scale, &filter, &video_tee])?;
@@ -207,12 +207,11 @@ fn create_pipeline(mut conn: Connection,
     }
 
     let mut current_frame = 0;
-    let mut t: u64 = 0;
 
     appsrc.set_callbacks(
         gstreamer_app::AppSrcCallbacks::builder()
             .need_data(move |appsrc, _| {
-                //log::info!("Frame {current_frame}");
+                log::debug!("Frame {current_frame}");
                 let t0 = SystemTime::now();
 
                 let frame_copy: (Vec<libwayshot::FrameCopy>, Option<(i32, i32)>) = match &area {
@@ -311,7 +310,7 @@ fn create_pipeline(mut conn: Connection,
                     }
                 }
                 current_frame += 1;
-                //println!("{:?}", t0.elapsed());
+                log::debug!("{:?}", t0.elapsed());
                 let _ = appsrc.push_buffer(buffer);
             })
             .build(),
