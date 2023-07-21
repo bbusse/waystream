@@ -1,6 +1,7 @@
 use std::{
     cmp, env,
     error::Error,
+    net::{IpAddr,Ipv6Addr},
     process::exit,
     time::{SystemTime},
 };
@@ -37,6 +38,10 @@ struct PipeOptions {
     target_height: i32,
     show_fps: bool,
     show_stream: bool,
+    udp_host: String,
+    udp_port: i32,
+    http_host: String,
+    http_port: u16,
 }
 
 mod clap;
@@ -133,23 +138,11 @@ fn create_pipeline(mut conn: Connection,
                                                                    .property("text-overlay", pipe_opts.show_fps)
                                                                    .build()?;
 
-    let hlssink = gstreamer::ElementFactory::make("hlssink2")
-        .name("hlssink")
-        .property("target-duration", 2u32)
-        .property("playlist-length", 2u32)
-        .property("max-files", 2u32)
-        .build()
-        .expect("Unable to instantiate hlssink");
-
-    let netsink = gstreamer::ElementFactory::make("udpsink").property("host", "127.0.0.1")
-                                                            .property("port", 2490)
-                                                            .build()?;
-
     let x264enc = gstreamer::ElementFactory::make("x264enc").build()
-                                                            .expect("Unable to instantiate x264enc");
+                                                            .expect("Failed to instantiate x264enc");
 
     let h264parse = gstreamer::ElementFactory::make("h264parse").build()
-                                                                 .expect("Unable to instantiate h264parse");
+                                                                 .expect("Failed to instantiate h264parse");
 
     let scale = gstreamer::ElementFactory::make("videoscale")
         .name("scale")
@@ -178,32 +171,54 @@ fn create_pipeline(mut conn: Connection,
         .property("allow-not-linked", true)
         .build()?;
 
-    let video_tee_queue_0 = gstreamer::ElementFactory::make("queue")
-        .build()?;
-    let video_tee_queue_1 = gstreamer::ElementFactory::make("queue")
-        .build()?;
-    let video_tee_queue_2 = gstreamer::ElementFactory::make("queue")
-        .build()?;
+    let video_tee_queue_local = gstreamer::ElementFactory::make("queue").build()?;
 
     pipeline.add_many(&[appsrc.upcast_ref(), &scale,
                                              &filter,
                                              &video_tee,
-                                             &video_tee_queue_0,
-                                             &video_tee_queue_1,
-                                             //&video_tee_queue_2,
-                                             //&hlssink,
-                                             &netsink])?;
+                                             &video_tee_queue_local])?;
+
+    gstreamer::Element::link_many(&[appsrc.upcast_ref(), &scale, &filter, &video_tee])?;
 
     if pipe_opts.show_stream {
+        log::info!("Adding local video sink");
         pipeline.add(&fpssink).unwrap();
     }
 
-    gstreamer::Element::link_many(&[appsrc.upcast_ref(), &scale, &filter, &video_tee])?;
-    gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_0, &netsink])?;
-    //gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_2, &hlssink])?;
+    if let Ok(http_address) = pipe_opts.http_host.parse::<IpAddr>() {
+        log::info!("Adding hlssink");
+
+        let video_tee_queue_hls = gstreamer::ElementFactory::make("queue") .build()?;
+        let hlssink = gstreamer::ElementFactory::make("hlssink2")
+            .name("hlssink")
+            .property("target-duration", 2u32)
+            .property("playlist-length", 2u32)
+            .property("max-files", 2u32)
+            .build()
+            .expect("Failed to instantiate hlssink");
+
+        pipeline.add(&video_tee_queue_hls).unwrap();
+        pipeline.add(&hlssink).unwrap();
+
+        //gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_hls, &hlssink])?;
+    }
+
+    if let Ok(udp_address) = pipe_opts.udp_host.parse::<IpAddr>() {
+        log::info!("Adding udp video sink");
+        let netsink = gstreamer::ElementFactory::make("udpsink").property("host", udp_address.to_string())
+                                                                .property("port", pipe_opts.udp_port)
+                                                                .build()?;
+
+        let video_tee_queue_udp = gstreamer::ElementFactory::make("queue").build()?;
+
+        pipeline.add(&video_tee_queue_udp).unwrap();
+        pipeline.add(&netsink).unwrap();
+
+        gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_udp, &netsink])?;
+    }
 
     if pipe_opts.show_stream {
-        gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_1, &fpssink])?;
+        gstreamer::Element::link_many(&[&video_tee, &video_tee_queue_local, &fpssink])?;
     }
 
     let mut current_frame = 0;
@@ -366,6 +381,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         target_height: 0,
         show_fps: false,
         show_stream: false,
+        http_host: "".to_string(),
+        http_port: 0,
+        udp_host: "".to_string(),
+        udp_port: 0,
     };
 
     if args.get_flag("show-fps") {
@@ -374,6 +393,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if args.get_flag("show-stream") {
         pipe_opts.show_stream = true;
+    }
+
+    if args.contains_id("http-host") {
+        pipe_opts.http_host = args.get_one::<String>("http-host").unwrap().clone();
+    }
+
+    if args.contains_id("http-port") {
+        pipe_opts.http_port = args.get_one::<u16>("http-port").unwrap().clone();
+    }
+
+    if args.contains_id("udp-host") {
+        pipe_opts.udp_host = args.get_one::<String>("udp-host").unwrap().clone();
+    }
+
+    if args.contains_id("udp-port") {
+        pipe_opts.udp_port = args.get_one::<i32>("udp-port").unwrap().clone();
     }
 
     if args.contains_id("width") {

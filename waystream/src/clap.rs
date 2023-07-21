@@ -1,8 +1,5 @@
 use clap::{arg, Command};
 
-// https://github.com/clap-rs/clap/issues/4869
-// 4.0 regression: dashes are not accepted any more #4869
-
 pub fn set_flags() -> Command {
     let app = Command::new("waystream")
         .version(env!("CARGO_PKG_VERSION"))
@@ -41,17 +38,33 @@ pub fn set_flags() -> Command {
                 .help("Enable cursor in stream"),
         )
         .arg(
+            arg!(--"http-host" <HTTP_HOST>)
+                .long("http-host")
+                .required(false)
+                .num_args(1)
+                .help("Set the http listen address")
+        )
+        .arg(
+            arg!(--"http-port" <HTTP_PORT>)
+                .long("http-port")
+                .required(false)
+                .num_args(1)
+                .value_parser(clap::value_parser!(u16))
+                .help("Set the http listen port"),
+        )
+        .arg(
             arg!(--"udp-host" <UDP_HOST>)
                 .long("udp-host")
-                .required(true)
+                .required(false)
                 .num_args(1)
                 .help("Set the host to stream to"),
         )
         .arg(
             arg!(--"udp-port" <UDP_PORT>)
                 .long("udp-port")
-                .required(true)
+                .required(false)
                 .num_args(1)
+                .value_parser(clap::value_parser!(i32))
                 .help("Set the port to stream to"),
         )
         .arg(
