@@ -1,10 +1,9 @@
 use std::{
     cmp, env,
     error::Error,
-    iter::Map,
-    net::{IpAddr,Ipv6Addr},
+    net::IpAddr,
     process::exit,
-    time::{SystemTime},
+    time::SystemTime,
 };
 
 use libwayshot::CaptureRegion;

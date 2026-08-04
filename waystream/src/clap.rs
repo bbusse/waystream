@@ -1,5 +1,4 @@
 use clap::{arg, Command};
-use std::iter::Map;
 
 pub fn set_flags() -> Command {
     let app = Command::new("waystream")
