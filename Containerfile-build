@@ -1,29 +1,48 @@
-ARG ALPINE_VERSION=3.18
-ARG TARGET=""
-FROM rust:alpine${ALPINE_VERSION}
+FROM rust:alpine3.21 AS builder
 LABEL maintainer="Björn Busse <bj.rn@baerlin.eu>"
 LABEL org.opencontainers.image.source https://github.com/bbusse/waystream
 
-ARG ALPINE_VERSION TARGET
+ARG TARGET=""
 
-ENV USER="build-user" \
-    APK_ADD="gstreamer-dev musl-dev gst-plugins-rs-dev"
+ENV USER="build-user"
 
-RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.18/main -u alpine-keys --allow-untrusted
+# Build dependencies for musl/alpine + GStreamer
+RUN apk add --no-cache \
+    build-base \
+    pkgconfig \
+    glib-dev \
+    gstreamer-dev \
+    gst-plugins-base-dev \
+    gettext-dev
 
-RUN echo $'http://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories \
-    && echo $'http://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories \
-    && apk update \
-    && apk upgrade \
-    && apk add --no-cache $APK_ADD
+WORKDIR /usr/local/src/waystream
+COPY . .
 
-RUN mkdir -p /usr/local/src/waystream
-COPY . /usr/local/src/waystream
-RUN cd /usr/local/src/waystream && cargo build --release $TARGET
+# Avoid full static linking on musl (no static GStreamer libs available)
+RUN mkdir -p .cargo \
+  && printf "[target.aarch64-unknown-linux-musl]\nrustflags = [\"-C\", \"target-feature=-crt-static\"]\n\n[target.x86_64-unknown-linux-musl]\nrustflags = [\"-C\", \"target-feature=-crt-static\"]\n" > .cargo/config.toml
+
+RUN cargo build --release $TARGET \
+  && install -Dm755 "$(find target -maxdepth 3 -type f -name waystream -path '*/release/waystream')" /out/waystream
+
+FROM alpine:3.21 AS runtime
+LABEL maintainer="Björn Busse <bj.rn@baerlin.eu>"
+LABEL org.opencontainers.image.source https://github.com/bbusse/waystream
+
+ENV USER="waystream"
+
+# Runtime libraries for GStreamer + GLib
+RUN apk add --no-cache \
+    gstreamer \
+    gst-plugins-base \
+    glib \
+    gettext-libs
 
 # Add application user
 RUN addgroup -S $USER && adduser -S $USER -G $USER
 
-# Add entrypoint
+# Copy binary from builder
+COPY --from=builder /out/waystream /usr/local/bin/waystream
+
 USER $USER
-CMD ["waystream"]
+ENTRYPOINT ["/usr/local/bin/waystream"]
