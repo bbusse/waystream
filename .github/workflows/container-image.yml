@@ -1,0 +1,25 @@
+name: Build and push container
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  container-build-push:
+    uses: bbusse/github-workflows/.github/workflows/container-build-push.yml@dev
+    with:
+      image_name: 'waystream-build'
+      image_platforms: linux/amd64,linux/arm64
+      image_repository: 'ghcr.io/bbusse'
+      container_file: Containerfile-build
+      container_registry: 'ghcr'
+      container_push_to_registry: true

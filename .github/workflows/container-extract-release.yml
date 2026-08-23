@@ -1,0 +1,31 @@
+name: Extract and release build artifact
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  extract-artifacts:
+    uses: bbusse/github-workflows/.github/workflows/container-extract-artifacts.yml@dev
+    with:
+      image: ghcr.io/bbusse/waystream-build:latest
+      wait_for_job: container-build-push
+      release: true
+      release_tag: latest
+      release_name: waystream
+      artifacts: |
+        [
+          {"path": "usr/local/bin/waystream", "name": "waystream-linux-amd64-latest", "platform": "linux/amd64"},
+          {"path": "usr/local/bin/waystream", "name": "waystream-linux-arm64-latest", "platform": "linux/arm64"}
+        ]
+    secrets:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
